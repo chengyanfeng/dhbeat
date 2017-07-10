@@ -1,16 +1,16 @@
 package main
 
 import (
+	. "dhbeat/controller"
+	. "dhbeat/def"
+	. "dhbeat/task"
+	. "dhbeat/util"
 	"encoding/json"
 	. "github.com/Shopify/sarama"
 	"github.com/astaxie/beego"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/nanobox-io/golang-scribble"
-	. "k2db/controller"
-	. "k2db/def"
-	. "k2db/task"
-	. "k2db/util"
 	"log"
 	"os"
 	"os/signal"
@@ -18,11 +18,10 @@ import (
 )
 
 func main() {
-	beego.BConfig.Listen.HTTPPort = ToInt(Trim(os.Getenv("port")), 7878)
+	beego.BConfig.Listen.HTTPPort = ToInt(Trim(os.Getenv("port")), 6117)
 	beego.BConfig.RecoverPanic = true
 	beego.BConfig.EnableErrorsShow = true
 	beego.AutoRouter(&ApiController{})
-	beego.AutoRouter(&WsController{})
 	//beego.SetLogger("file", `{"filename":"logs/run.log"}`)
 	//beego.BeeLogger.SetLogFuncCallDepth(4)
 	LocalDb, _ = scribble.New("log", nil)

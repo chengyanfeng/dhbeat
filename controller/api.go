@@ -1,9 +1,9 @@
 package controller
 
 import (
+	. "dhbeat/def"
+	. "dhbeat/util"
 	"github.com/astaxie/beego"
-	. "k2db/def"
-	. "k2db/util"
 	"os"
 	"runtime"
 )

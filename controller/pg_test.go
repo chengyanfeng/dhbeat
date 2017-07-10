@@ -1,11 +1,11 @@
 package controller
 
 import (
-	. "k2db/util"
+	. "dhbeat/util"
 	//. "github.com/Shopify/sarama"
+	. "dhbeat/def"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	. "k2db/def"
 	"pc.cn/task"
 	"testing"
 	"time"
