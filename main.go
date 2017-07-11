@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var dir = "/data/log"
+
 func main() {
 	LocalDb, _ = scribble.New("log", nil)
 	var err error
@@ -16,7 +18,9 @@ func main() {
 		panic(err)
 	}
 	initProducer()
+	scanFiles()
 	StartWatcher()
+	// todo: auto save cmap
 }
 
 func initProducer() {
@@ -25,6 +29,10 @@ func initProducer() {
 	if e != nil {
 		Error(e)
 	}
+}
+
+func scanFiles() {
+	// todo 列出dir下面的所有log文件，加载每个文件的offset，如果没有则是新文件，如果offset对应的文件缺失说明被删除了
 }
 
 func StartWatcher() {
@@ -45,7 +53,10 @@ func StartWatcher() {
 					lines := ReadChanges(file)
 					for _, line := range lines {
 						Nc.Publish("log", []byte(line))
+						// todo: save offset into cmap
 					}
+				} else if event.Op&fsnotify.Write == fsnotify.Remove {
+					// todo: remove cmap[file]
 				}
 			case err := <-watcher.Errors:
 				Error(err)
@@ -53,7 +64,7 @@ func StartWatcher() {
 		}
 	}()
 
-	err = watcher.Add("/data/log")
+	err = watcher.Add(dir)
 	if err != nil {
 		Error(err)
 	}
@@ -62,31 +73,34 @@ func StartWatcher() {
 
 func ReadChanges(file string) []string {
 	r := []string{}
+	// todo: load offset from cmap,
+	// todo: if cmp[file]==0, read from 0 to 10 lines
 	//ofst := LoadOffset(file)
 
 	return r
 }
 
-func LoadOffset(topic string) int64 {
+func LoadOffset(file string) int64 {
 	i := int64(0)
-	LocalDb.Read(topic, "offset", &i)
+	LocalDb.Read(file, "offset", &i)
+	// todo: save offset into cmap
 	//Debug("LoadOffset", i)
 	return i
 }
 
-func SaveOffset(topic string, offset int64) {
-	LocalDb.Write(topic, "offset", offset)
+func SaveOffset(file string, offset int64) {
+	LocalDb.Write(file, "offset", offset)
 	Debug("SaveOffset", offset)
 }
 
-func AutoSaveOffset(topic string) {
+func AutoSaveOffset(file string) {
 	for {
 		time.Sleep(time.Duration(1 * time.Second))
-		old := LoadOffset(topic)
-		tmp, _ := Cmap.Get(topic)
+		old := LoadOffset(file)
+		tmp, _ := Cmap.Get(file)
 		offset := ToInt64(tmp)
 		if offset != old {
-			SaveOffset(topic, offset)
+			SaveOffset(file, offset)
 		}
 	}
 }
