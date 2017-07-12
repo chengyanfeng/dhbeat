@@ -124,6 +124,7 @@ func ProcFile(file string) int64 {
 	return offset
 }
 
+// 加载本地保存的文件 offset
 func LoadOffset(file string) int64 {
 	i := int64(0)
 	LocalDb.Read(file, "offset", &i)
@@ -131,6 +132,7 @@ func LoadOffset(file string) int64 {
 	return i
 }
 
+// 自动定时保存 offset
 func AutoSaveOffset() {
 	for {
 		time.Sleep(time.Duration(1 * time.Second))
