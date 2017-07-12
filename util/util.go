@@ -747,8 +747,8 @@ func ExtractFile(path string, target string, ext string) {
 	Debug("filepath.Walk() %v\n", err)
 }
 
-func DirTree(path string, ext string, limit int) (files []P) {
-	files = []P{}
+func DirTree(path string, ext string, limit int) (files []string) {
+	files = []string{}
 	i := 0
 	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		//Debug(path)
@@ -758,7 +758,7 @@ func DirTree(path string, ext string, limit int) (files []P) {
 		i++
 		if f != nil && !f.IsDir() {
 			if strings.HasSuffix(f.Name(), ext) {
-				files = append(files, P{"file": path})
+				files = append(files, path)
 			}
 		}
 		return nil
@@ -783,6 +783,11 @@ func Copy(src, dst string) error {
 		return err
 	}
 	return cerr
+}
+
+func FileSize(file string) int64 {
+	fi, _ := os.Stat(file)
+	return fi.Size()
 }
 
 func RegSplit(text string, delimeter string) []string {

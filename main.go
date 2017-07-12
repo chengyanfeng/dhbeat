@@ -6,6 +6,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/nanobox-io/golang-scribble"
 	"github.com/nats-io/go-nats"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -19,10 +21,11 @@ func main() {
 	}
 	initProducer()
 	scanFiles()
+	go AutoSaveOffset()
 	StartWatcher()
-	// todo: auto save cmap
 }
 
+// 初始化 nats 连接
 func initProducer() {
 	var e error
 	Nc, e = nats.Connect(NATS_HOST)
@@ -31,10 +34,17 @@ func initProducer() {
 	}
 }
 
+// 列出dir下面的所有log文件，加载每个文件的offset
 func scanFiles() {
-	// todo 列出dir下面的所有log文件，加载每个文件的offset，如果没有则是新文件，如果offset对应的文件缺失说明被删除了
+	files := DirTree(dir, ".log", 100)
+	for _, file := range files {
+		offset := LoadOffset(file)
+		Cmap.Set(file, offset)
+		ProcFile(file)
+	}
 }
 
+// 开始监听文件变化（修改、删除）
 func StartWatcher() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -47,16 +57,13 @@ func StartWatcher() {
 		for {
 			select {
 			case event := <-watcher.Events:
+				file := event.Name
 				if event.Op&fsnotify.Write == fsnotify.Write {
-					file := event.Name
 					Debug("modified file:", file)
-					lines := ReadChanges(file)
-					for _, line := range lines {
-						Nc.Publish("log", []byte(line))
-						// todo: save offset into cmap
-					}
-				} else if event.Op&fsnotify.Write == fsnotify.Remove {
-					// todo: remove cmap[file]
+					ProcFile(file)
+				} else if event.Op == fsnotify.Remove {
+					Debug("delete file:", file)
+					Cmap.Remove(file)
 				}
 			case err := <-watcher.Errors:
 				Error(err)
@@ -71,36 +78,67 @@ func StartWatcher() {
 	<-done
 }
 
-func ReadChanges(file string) []string {
-	r := []string{}
-	// todo: load offset from cmap,
-	// todo: if cmp[file]==0, read from 0 to 10 lines
-	//ofst := LoadOffset(file)
+// 处理文件，从offset开始读取，分行，然后扔给nats
+func ProcFile(file string) int64 {
+	lines := []string{}
+	tmp, _ := Cmap.Get(file)
+	offset := ToInt64(tmp)
+	size := FileSize(file)
+	f, e := os.Open(file)
+	if e != nil {
+		Error(e)
+		return offset
+	}
+	step := int64(102400)
+	half := ""
+	for ptr := offset; ptr <= size; ptr += step {
+		b := make([]byte, step)
+		d, _ := f.ReadAt(b, offset)
 
-	return r
+		body := string(b[:d])
+		lines = strings.Split(body, "\n")
+		if !IsEmpty(half) {
+			lines[0] = half + lines[0]
+			half = ""
+		}
+		if !EndsWith(body, "\n") {
+			half = lines[len(lines)-1]
+			if len(lines) > 1 {
+				lines = lines[0 : len(lines)-1]
+			}
+		} else {
+			half = ""
+		}
+		offset += int64(d)
+		for _, line := range lines {
+			if Trim(line) != "" {
+				err := Nc.Publish("log", []byte(line))
+				if err != nil {
+					Error(err)
+					break
+				}
+				Cmap.Set(file, offset)
+			}
+		}
+	}
+	return offset
 }
 
 func LoadOffset(file string) int64 {
 	i := int64(0)
 	LocalDb.Read(file, "offset", &i)
-	// todo: save offset into cmap
-	//Debug("LoadOffset", i)
+	Debug("LoadOffset", file, i)
 	return i
 }
 
-func SaveOffset(file string, offset int64) {
-	LocalDb.Write(file, "offset", offset)
-	Debug("SaveOffset", offset)
-}
-
-func AutoSaveOffset(file string) {
+func AutoSaveOffset() {
 	for {
 		time.Sleep(time.Duration(1 * time.Second))
-		old := LoadOffset(file)
-		tmp, _ := Cmap.Get(file)
-		offset := ToInt64(tmp)
-		if offset != old {
-			SaveOffset(file, offset)
+		for v := range Cmap.Iter() {
+			file := v.Key
+			offset := ToInt64(v.Val)
+			LocalDb.Write(file, "offset", offset)
+			Debug("SaveOffset", file, offset)
 		}
 	}
 }
