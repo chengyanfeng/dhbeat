@@ -16,6 +16,7 @@ var NATS_HOST = "nats://nats.datahunter.cn:4222"
 var Nc *nats.Conn
 var BLOCK_SIZE = 102400
 var Q_NAME = "log"
+var DIR = "/data/log"
 var UPTIME = time.Now().UnixNano() / int64(time.Millisecond)
 
 const (

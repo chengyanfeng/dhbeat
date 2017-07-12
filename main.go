@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-var dir = "/data/log"
-
 func main() {
 	LocalDb, _ = scribble.New("log", nil)
 	var err error
@@ -36,7 +34,7 @@ func initProducer() {
 
 // 列出dir下面的所有log文件，加载每个文件的offset
 func scanFiles() {
-	files := DirTree(dir, ".log", 100)
+	files := DirTree(DIR, ".log", 100)
 	for _, file := range files {
 		offset := LoadOffset(file)
 		Cmap.Set(file, offset)
@@ -71,7 +69,7 @@ func StartWatcher() {
 		}
 	}()
 
-	err = watcher.Add(dir)
+	err = watcher.Add(DIR)
 	if err != nil {
 		Error(err)
 	}
