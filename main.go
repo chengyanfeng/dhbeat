@@ -80,9 +80,16 @@ func StartWatcher() {
 
 // 处理文件，从offset开始读取，分行，然后扔给nats
 func ProcFile(file string) int64 {
-	lines := []string{}
 	tmp, _ := Cmap.Get(file)
 	offset := ToInt64(tmp)
+	_, b := Lock.Get(file)
+	if b {
+		return offset
+	}
+	Lock.Set(file, 1)
+	defer Lock.Remove(file)
+	lines := []string{}
+
 	size := FileSize(file)
 	f, e := os.Open(file)
 	if e != nil {
