@@ -119,7 +119,7 @@ func ProcFile(file string) int64 {
 		offset += int64(d)
 		for _, line := range lines {
 			if Trim(line) != "" {
-				err := Nc.Publish("log", []byte(line))
+				err := Nc.Publish(Q_NAME, []byte(line))
 				if err != nil {
 					Error(err)
 					break
