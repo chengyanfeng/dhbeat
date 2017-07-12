@@ -89,7 +89,7 @@ func ProcFile(file string) int64 {
 		Error(e)
 		return offset
 	}
-	step := int64(102400)
+	step := int64(BLOCK_SIZE)
 	half := ""
 	for ptr := offset; ptr <= size; ptr += step {
 		b := make([]byte, step)
