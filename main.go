@@ -90,6 +90,7 @@ func ProcFile(file string) int64 {
 
 	size := FileSize(file)
 	f, e := os.Open(file)
+	defer f.Close()
 	if e != nil {
 		Error(e)
 		return offset
