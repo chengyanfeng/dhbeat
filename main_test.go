@@ -1,7 +1,7 @@
 package main
 
 import (
-	. "dhbeat/util"
+	. "DhBeat/util"
 	"testing"
 )
 
@@ -10,12 +10,12 @@ func init() {
 }
 
 func TestProcFile(t *testing.T) {
-	i := ProcFile("/data/log/test.csv")
+	i := ProcFile("E:/data/soooner_cache.log")
 	Debug(i)
 }
 
 func BenchmarkProcFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		ProcFile("/data/log/test.csv")
+		ProcFile("E:/data/soooner_cache.log")
 	}
 }

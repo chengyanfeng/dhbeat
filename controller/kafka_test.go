@@ -1,7 +1,7 @@
 package controller
 
 import (
-	. "dhbeat/util"
+	. "DhBeat/util"
 	. "github.com/Shopify/sarama"
 	"log"
 	"os"

@@ -1,8 +1,8 @@
 package controller
 
 import (
-	. "dhbeat/def"
-	. "dhbeat/util"
+	. "DhBeat/def"
+	. "DhBeat/util"
 	"github.com/astaxie/beego"
 	"os"
 	"runtime"
