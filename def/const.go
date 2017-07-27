@@ -17,7 +17,6 @@ var Sc stan.Conn
 var BLOCK_SIZE int64
 var Q_NAME string
 var DIR string
-//var OFFSET_DIR string
 var CLUSTER_ID string
 var CLIENT_ID string
 var TYPE string

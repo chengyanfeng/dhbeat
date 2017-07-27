@@ -23,13 +23,14 @@ func main() {
 	}
 	initProducer()
 	Debug("initProducer()..............")
-	Debug(Sc)
 	scanFiles()
 	Debug("scanFiles()..............")
 	go AutoSaveOffset()
 	Debug("AutoSaveOffset()..............")
 	StartWatcher()
 }
+
+
 
 //初始化配置文件
 func initConf(){
@@ -40,7 +41,6 @@ func initConf(){
 	BLOCK_SIZE , _ = strconv.ParseInt(str, 10, 64)
 	Q_NAME = config["q_name"]
 	DIR = config["dir"]
-	//OFFSET_DIR = config["offset_dir"]
 	CLUSTER_ID = config["cluster_id"]
 	CLIENT_ID = config["client_id"]
 	TYPE = config["type"]
@@ -130,7 +130,8 @@ func ProcFile(file string) int64 {
 
 	for ptr := offset; ptr <= size; ptr += step {
 		b := make([]byte, step)
-		d, _ := f.ReadAt(b, offset)
+		var d int
+			d, _ = f.ReadAt(b, offset)
 		body := string(b[:d])
 		lines = strings.Split(body, "\n")
 		if !IsEmpty(half) {
@@ -153,12 +154,13 @@ func ProcFile(file string) int64 {
 				n ++
 				log := line + " "+ HOSTNAME + " " +file
 				_,err := Sc.PublishAsync(Q_NAME, []byte(log), ah)
-				//Debug(n,log)
+
 				if err != nil {
 					Error(err)
 					break
 				}
 				Cmap.Set(file, offset)
+
 			}
 		}
 		//测试发布数据时间
