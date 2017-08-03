@@ -3,16 +3,18 @@ package def
 import (
 	//"github.com/Shopify/sarama"
 	"github.com/nanobox-io/golang-scribble"
-	"github.com/orcaman/concurrent-map"
-	"time"
-	"os"
+	"github.com/nats-io/go-nats"
 	"github.com/nats-io/go-nats-streaming"
+	"github.com/orcaman/concurrent-map"
+	"os"
+	"time"
 )
 
 var Cmap cmap.ConcurrentMap = cmap.New()
 var Lock cmap.ConcurrentMap = cmap.New()
 var LocalDb *scribble.Driver
 var NATS_HOST string
+var Nc *nats.Conn
 var Sc stan.Conn
 var BLOCK_SIZE int64
 var Q_NAME string
@@ -21,11 +23,12 @@ var CLUSTER_ID string
 var CLIENT_ID string
 var TYPE string
 var UPTIME = time.Now().UnixNano() / int64(time.Millisecond)
-var HOSTNAME,_ = os.Hostname()
+var HOSTNAME, _ = os.Hostname()
 
 const (
 	GENERAL_ERR int = 400
 )
+
 //type Conn interface {
 //	// Publish
 //	Publish(subject string, data []byte) error

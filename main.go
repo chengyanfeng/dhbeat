@@ -1,15 +1,17 @@
 package main
 
 import (
-	. "DhBeat/def"
-	. "DhBeat/util"
+	. "dhbeat/def"
+	. "dhbeat/util"
 	"github.com/fsnotify/fsnotify"
 	"github.com/nanobox-io/golang-scribble"
+	"github.com/nats-io/go-nats-streaming"
 	"os"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
-	"github.com/nats-io/go-nats-streaming"
+	//"github.com/nats-io/go-nats"
+	"github.com/nats-io/go-nats"
 )
 
 func main() {
@@ -26,37 +28,41 @@ func main() {
 	scanFiles()
 	Debug("scanFiles()..............")
 	go AutoSaveOffset()
+	go AutoDump()
 	Debug("AutoSaveOffset()..............")
 	StartWatcher()
 }
 
-
+var aggr = Aggregator{}
 
 //初始化配置文件
-func initConf(){
+func initConf() {
 	myConfig := new(Config)
-	config := myConfig.InitConfig("./","DhBeat.ini","nats")
+	config := myConfig.InitConfig("./", "DhBeat.ini", "nats")
 	NATS_HOST = config["nats_host"]
 	str := config["block_size"]
-	BLOCK_SIZE , _ = strconv.ParseInt(str, 10, 64)
+	BLOCK_SIZE, _ = strconv.ParseInt(str, 10, 64)
 	Q_NAME = config["q_name"]
 	DIR = config["dir"]
 	CLUSTER_ID = config["cluster_id"]
 	CLIENT_ID = config["client_id"]
 	TYPE = config["type"]
 }
+
 var ah stan.AckHandler
 
- //初始化 nats-streaming 连接
+//初始化 nats-streaming 连接
 func initProducer() {
 	var err error
-//	Nc, e = nats.Connect(NATS_HOST)
-	Sc, err = stan.Connect(CLUSTER_ID, CLIENT_ID, stan.NatsURL(NATS_HOST))
+	Nc, err = nats.Connect(NATS_HOST)
+	//Sc, err = stan.Connect(CLUSTER_ID, CLIENT_ID, stan.NatsURL(NATS_HOST))
+	//Sc, err = stan.Connect(CLUSTER_ID, CLIENT_ID, stan.NatsURL("nats://127.0.0.1:4222"))
 	if err != nil {
-		Error(err)
+		panic(err)
 	}
 
 }
+
 // 列出dir下面的所有log文件，加载每个文件的offset
 func scanFiles() {
 	files := DirTree(DIR, TYPE, 100)
@@ -122,16 +128,16 @@ func ProcFile(file string) int64 {
 	step := int64(BLOCK_SIZE)
 	half := ""
 	t0 := time.Now().UnixNano() / int64(time.Millisecond)
-	Debug("offset =",offset,"size =",size)
+	Debug("offset =", offset, "size =", size)
 	//由于目前日志文件名不改变，则整点将offset归零
-	if offset>size  {
+	if offset > size {
 		offset = 0
 	}
 
 	for ptr := offset; ptr <= size; ptr += step {
 		b := make([]byte, step)
 		var d int
-			d, _ = f.ReadAt(b, offset)
+		d, _ = f.ReadAt(b, offset)
 		body := string(b[:d])
 		lines = strings.Split(body, "\n")
 		if !IsEmpty(half) {
@@ -151,9 +157,14 @@ func ProcFile(file string) int64 {
 		for _, line := range lines {
 
 			if Trim(line) != "" {
-				n ++
-				log := line + " "+ HOSTNAME + " " +file
-				_,err := Sc.PublishAsync(Q_NAME, []byte(log), ah)
+				n++
+				log := line + " " + HOSTNAME + " " + file
+				//err := Sc.Publish(Q_NAME, []byte(log))
+				parser := LogParser{}
+				p := *parser.Parse(log)
+				aggr.Add(p)
+
+				err := Nc.Publish(Q_NAME, []byte(log))
 
 				if err != nil {
 					Error(err)
@@ -164,10 +175,10 @@ func ProcFile(file string) int64 {
 			}
 		}
 		//测试发布数据时间
-		if offset==size {
+		if offset == size {
 			t1 := time.Now().UnixNano() / int64(time.Millisecond)
 			if t1-t0 != 0 {
-				Debug("共发送",n,"条数据，共花时间",t1-t0,"毫秒,发布速度为",n/(t1-t0)*1000,"条/秒")
+				Debug("共发送", n, "条数据，共花时间", t1-t0, "毫秒,发布速度为", n/(t1-t0)*1000, "条/秒")
 			}
 		}
 	}
@@ -191,6 +202,17 @@ func AutoSaveOffset() {
 			offset := ToInt64(v.Val)
 			LocalDb.Write(file, "offset", offset)
 			//Debug("SaveOffset", file, offset)
+		}
+	}
+}
+
+// 自动定时dump aggr
+func AutoDump() {
+	for {
+		time.Sleep(time.Duration(300 * time.Second))
+		data := aggr.Dump()
+		for _, v := range data {
+			Nc.Publish("log", []byte(JsonEncode(v)))
 		}
 	}
 }
