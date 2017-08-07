@@ -8,6 +8,7 @@ import (
 	"github.com/orcaman/concurrent-map"
 	"os"
 	"time"
+	"sync"
 )
 
 var Cmap cmap.ConcurrentMap = cmap.New()
@@ -24,7 +25,8 @@ var CLIENT_ID string
 var TYPE string
 var UPTIME = time.Now().UnixNano() / int64(time.Millisecond)
 var HOSTNAME, _ = os.Hostname()
-
+var LD int64
+var SR *sync.RWMutex
 const (
 	GENERAL_ERR int = 400
 )

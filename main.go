@@ -1,20 +1,22 @@
 package main
 
 import (
-	. "dhbeat/def"
-	. "dhbeat/util"
+	. "DhBeat/def"
+	. "DhBeat/util"
 	"github.com/fsnotify/fsnotify"
 	"github.com/nanobox-io/golang-scribble"
-	"github.com/nats-io/go-nats-streaming"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 	//"github.com/nats-io/go-nats"
 	"github.com/nats-io/go-nats"
+	"sync"
+	"fmt"
 )
 
 func main() {
+	SR = new(sync.RWMutex)
 	initConf()
 	Debug("initConf()...........")
 	LocalDb, _ = scribble.New("log", nil)
@@ -28,8 +30,9 @@ func main() {
 	scanFiles()
 	Debug("scanFiles()..............")
 	go AutoSaveOffset()
+	Debug("go AutoSaveOffset()..............")
 	go AutoDump()
-	Debug("AutoSaveOffset()..............")
+	Debug("go AutoDump()..............")
 	StartWatcher()
 }
 
@@ -40,16 +43,17 @@ func initConf() {
 	myConfig := new(Config)
 	config := myConfig.InitConfig("./", "DhBeat.ini", "nats")
 	NATS_HOST = config["nats_host"]
-	str := config["block_size"]
-	BLOCK_SIZE, _ = strconv.ParseInt(str, 10, 64)
+	BLOCK_SIZE, _ = strconv.ParseInt(config["block_size"], 10, 64)
 	Q_NAME = config["q_name"]
 	DIR = config["dir"]
 	CLUSTER_ID = config["cluster_id"]
 	CLIENT_ID = config["client_id"]
 	TYPE = config["type"]
+	//LD ,_  = strconv.Atoi(config["ld"])
+	LD ,_ = strconv.ParseInt(config["ld"], 10, 64)
 }
 
-var ah stan.AckHandler
+//var ah stan.AckHandler
 
 //初始化 nats-streaming 连接
 func initProducer() {
@@ -128,7 +132,7 @@ func ProcFile(file string) int64 {
 	step := int64(BLOCK_SIZE)
 	half := ""
 	t0 := time.Now().UnixNano() / int64(time.Millisecond)
-	Debug("offset =", offset, "size =", size)
+//	Debug("offset =", offset, "size =", size)
 	//由于目前日志文件名不改变，则整点将offset归零
 	if offset > size {
 		offset = 0
@@ -159,17 +163,19 @@ func ProcFile(file string) int64 {
 			if Trim(line) != "" {
 				n++
 				log := line + " " + HOSTNAME + " " + file
+				fmt.Println(log)
 				//err := Sc.Publish(Q_NAME, []byte(log))
 				parser := LogParser{}
-				p := *parser.Parse(log)
-				aggr.Add(p)
-
-				err := Nc.Publish(Q_NAME, []byte(log))
-
-				if err != nil {
-					Error(err)
-					break
-				}
+				p := parser.Parse(log)
+				aggr.Add(p...)
+			//	app := aggr.Dump()
+			//	Debug(len(app))
+				//err := Nc.Publish(Q_NAME, []byte(log))
+				//
+				//if err != nil {
+				//	Error(err)
+				//	break
+				//}
 				Cmap.Set(file, offset)
 
 			}
@@ -178,7 +184,7 @@ func ProcFile(file string) int64 {
 		if offset == size {
 			t1 := time.Now().UnixNano() / int64(time.Millisecond)
 			if t1-t0 != 0 {
-				Debug("共发送", n, "条数据，共花时间", t1-t0, "毫秒,发布速度为", n/(t1-t0)*1000, "条/秒")
+			//	Debug("共发送", n, "条数据，共花时间", t1-t0, "毫秒,发布速度为", n/(t1-t0)*1000, "条/秒")
 			}
 		}
 	}
@@ -207,12 +213,32 @@ func AutoSaveOffset() {
 }
 
 // 自动定时dump aggr
+
 func AutoDump() {
+
 	for {
-		time.Sleep(time.Duration(300 * time.Second))
-		data := aggr.Dump()
-		for _, v := range data {
-			Nc.Publish("log", []byte(JsonEncode(v)))
+		//	time.Sleep(time.Duration(300 * time.Second))
+		timestamp := time.Now().Unix()
+		if timestamp%(LD*60) == 0 {
+			SR.Lock()
+			data := aggr.Dump()
+			for _, v := range data {
+				log := ToString(v["time_local"]) + "|" + ToString(v["spid"]) + "|" + ToString(v["pid"]) + "|" + ToString(v["dhbeat_hostname"]) + "|" + ToString(v["bw"])
+				//	log := key + "|" + ToString(value)
+				//	Nc.Publish(Q_NAME, []byte(JsonEncode(v)))
+				err := Nc.Publish(Q_NAME, []byte(log))
+				if err != nil {
+					Error(err)
+					break
+				}
+				//	fmt.Println(log)
+				Debug(log)
+			}
+			//删除已发布的日志
+			aggr.Ju = []P{}
+			aggr.Lm = make(map[string]float64)
+
+			SR.Unlock()
 		}
 	}
 }

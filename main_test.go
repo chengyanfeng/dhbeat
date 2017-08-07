@@ -1,7 +1,7 @@
 package main
 
 import (
-	. "DhBeat/util"
+	. "dhbeat/util"
 	"testing"
 )
 

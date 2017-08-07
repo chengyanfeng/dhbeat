@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/json"
 	"testing"
+	"fmt"
 )
 
 func TestLogParser_Parse(t *testing.T) {
@@ -12,6 +13,7 @@ func TestLogParser_Parse(t *testing.T) {
 	//msg := ""
 	p := parser.Parse(msg)
 	Debug(JsonEncode(p))
+	fmt.Println(p)
 }
 
 // 测试filebeat包装过的数据
