@@ -1,8 +1,8 @@
 package controller
 
 import (
-	. "dhbeat/def"
-	. "dhbeat/util"
+	. "DhBeat/def"
+	. "DhBeat/util"
 	"fmt"
 	"github.com/astaxie/beego"
 	"gopkg.in/mgo.v2/bson"

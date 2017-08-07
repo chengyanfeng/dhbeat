@@ -1,8 +1,8 @@
 package main
 
 import (
-	. "dhbeat/def"
-	. "dhbeat/util"
+	. "DhBeat/def"
+	. "DhBeat/util"
 	"github.com/fsnotify/fsnotify"
 	"github.com/nanobox-io/golang-scribble"
 	"os"
