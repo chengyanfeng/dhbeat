@@ -1,39 +1,29 @@
 package main
 
 import (
-
 	. "dhbeat/def"
-	. "DhBeat/util"
+	. "dhbeat/util"
+	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/nanobox-io/golang-scribble"
+	"github.com/nats-io/go-nats"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-	//"github.com/nats-io/go-nats"
-	"github.com/nats-io/go-nats"
-	"sync"
-	"fmt"
 )
 
 func main() {
-	SR = new(sync.RWMutex)
 	initConf()
-	Debug("initConf()...........")
 	LocalDb, _ = scribble.New("log", nil)
-	Debug("LocalDb..............")
 	var err error
 	if err != nil {
 		panic(err)
 	}
 	initProducer()
-	Debug("initProducer()..............")
 	scanFiles()
-	Debug("scanFiles()..............")
 	go AutoSaveOffset()
-	Debug("go AutoSaveOffset()..............")
 	go AutoDump()
-	Debug("go AutoDump()..............")
 	StartWatcher()
 }
 
@@ -51,10 +41,8 @@ func initConf() {
 	CLIENT_ID = config["client_id"]
 	TYPE = config["type"]
 	//LD ,_  = strconv.Atoi(config["ld"])
-	LD ,_ = strconv.ParseInt(config["ld"], 10, 64)
+	LD, _ = strconv.ParseInt(config["ld"], 10, 64)
 }
-
-//var ah stan.AckHandler
 
 //初始化 nats-streaming 连接
 func initProducer() {
@@ -133,7 +121,7 @@ func ProcFile(file string) int64 {
 	step := int64(BLOCK_SIZE)
 	half := ""
 	t0 := time.Now().UnixNano() / int64(time.Millisecond)
-//	Debug("offset =", offset, "size =", size)
+	//	Debug("offset =", offset, "size =", size)
 	//由于目前日志文件名不改变，则整点将offset归零
 	if offset > size {
 		offset = 0
@@ -169,8 +157,8 @@ func ProcFile(file string) int64 {
 				parser := LogParser{}
 				p := parser.Parse(log)
 				aggr.Add(p...)
-			//	app := aggr.Dump()
-			//	Debug(len(app))
+				//	app := aggr.Dump()
+				//	Debug(len(app))
 				//err := Nc.Publish(Q_NAME, []byte(log))
 				//
 				//if err != nil {
@@ -185,7 +173,7 @@ func ProcFile(file string) int64 {
 		if offset == size {
 			t1 := time.Now().UnixNano() / int64(time.Millisecond)
 			if t1-t0 != 0 {
-			//	Debug("共发送", n, "条数据，共花时间", t1-t0, "毫秒,发布速度为", n/(t1-t0)*1000, "条/秒")
+				//	Debug("共发送", n, "条数据，共花时间", t1-t0, "毫秒,发布速度为", n/(t1-t0)*1000, "条/秒")
 			}
 		}
 	}
@@ -221,7 +209,6 @@ func AutoDump() {
 		//	time.Sleep(time.Duration(300 * time.Second))
 		timestamp := time.Now().Unix()
 		if timestamp%(LD*60) == 0 {
-			SR.Lock()
 			data := aggr.Dump()
 			for _, v := range data {
 				log := ToString(v["time_local"]) + "|" + ToString(v["spid"]) + "|" + ToString(v["pid"]) + "|" + ToString(v["dhbeat_hostname"]) + "|" + ToString(v["bw"])
@@ -239,7 +226,6 @@ func AutoDump() {
 			aggr.Ju = []P{}
 			aggr.Lm = make(map[string]float64)
 
-			SR.Unlock()
 		}
 	}
 }
