@@ -113,19 +113,26 @@ func AutoSaveOffset() {
 }
 
 // 自动定时dump aggr
-
 func AutoDump() {
-
 	for {
 		data := aggr.Dump()
 		for _, v := range data {
-			log := ToString(v["time_local"]) + "|" + ToString(v["spid"]) + "|" + ToString(v["pid"]) + "|" + ToString(v["dhbeat_hostname"]) + "|" + ToString(v["bw"])
+			log := JoinStr(v["time_local"],
+				",",
+				v["spid"],
+				",",
+				v["pid"],
+				",",
+				v["dhbeat_hostname"],
+				",",
+				v["request_time"],
+				",",
+				v["bytes_sent"])
 			err := Nc.Publish(Q_NAME, []byte(log))
 			if err != nil {
 				Error(err)
-				break
 			}
-			Debug(log)
 		}
+		time.Sleep(5 * time.Minute)
 	}
 }
