@@ -116,6 +116,7 @@ func AutoSaveOffset() {
 func AutoDump() {
 	for {
 		data := aggr.Dump()
+		count := 0
 		for _, v := range data {
 			log := JoinStr(v["time_local"],
 				",",
@@ -132,7 +133,9 @@ func AutoDump() {
 			if err != nil {
 				Error(err)
 			}
+			count++
 		}
+		Debug("AutoDump", count)
 		time.Sleep(5 * time.Minute)
 	}
 }
