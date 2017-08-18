@@ -942,3 +942,18 @@ func Invoke(any interface{}, name string, args ...interface{}) {
 	}
 	reflect.ValueOf(any).MethodByName(name).Call(inputs)
 }
+
+func BucketMinute(t time.Time, interval int) string {
+	if interval < 1 {
+		interval = 1
+	} else if interval > 59 {
+		interval = 59
+	}
+	r := t.Minute() / interval * interval
+	minStr := JoinStr(r)
+	if r < 10 {
+		minStr = JoinStr(0, r)
+	}
+	str := t.Format("2006/01/02 15:04:05")
+	return JoinStr(str[0:len(str)-5], minStr, ":00")
+}

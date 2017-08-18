@@ -2,3 +2,6 @@
 dhbeat
 log/
 data/
+*.csv
+*.txt
+*.ini

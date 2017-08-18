@@ -1,74 +1,50 @@
 package util
 
+import (
+	"sync"
+)
+
 type Aggregator struct {
-	Ju []P
-	Lm map[string]float64
+	Cache P
+	Lock  sync.Mutex
 }
 
 // 往聚合器里面增加数据
-func (this *Aggregator) Add(p ...P) {
+func (this *Aggregator) Add(ps ...P) {
+	this.Lock.Lock()
+	defer this.Lock.Unlock()
+	for _, p := range ps {
+		key := Md5(p["time_local"],
+			p["spid"],
+			p["pid"],
+			p["dhbeat_hostname"])
 
-	if IsEmpty(this.Ju) {
-		this.Ju = []P{}
-	}
-	if this.Lm == nil {
-		this.Lm = make(map[string]float64)
-	}
-
-	// todo
-
-	for i := 0; i < len(p); i++ {
-		pl := p[i]
-		key := ToString(pl["time_local"]) + "|" + ToString(pl["spid"]) + "|" + ToString(pl["pid"]) + "|" + ToString(pl["dhbeat_hostname"])
-		value := pl["bw"].(float64)
-		if _, ok := this.Lm[key]; ok {
-			this.Lm[key] += value
-			for i := 0; i < len(this.Ju); i++ {
-				if ToString(this.Ju[i]["time_local"]) == ToString(pl["time_local"]) && ToString(this.Ju[i]["spid"]) == ToString(pl["spid"]) && ToString(this.Ju[i]["pid"]) == ToString(pl["pid"]) {
-					t := this.Ju[i]["bw"].(float64) + pl["bw"].(float64)
-					this.Ju[i]["bw"] = t
-				}
-			}
+		tmp := this.Cache[key]
+		if IsEmpty(tmp) {
+			p["key"] = key
+			this.Cache[key] = p
 		} else {
-			this.Lm[key] = value
-			this.Ju = append(this.Ju, pl)
+			v := tmp.(P)
+			v["bytes_sent"] = ToInt(v["bytes_sent"]) + ToInt(p["bytes_sent"])
+			v["request_time"] = ToFloat(v["request_time"]) + ToFloat(p["request_time"])
 		}
 	}
-	//	fmt.Println(len(this.Lm))
-
-	//if len(this.Ju) == 0 {
-	//	this.Ju = append(this.Ju, pl)
-	//} else {
-	//	for i := 0; i < len(this.Ju); i++ {
-	//				jkey := ToString(this.Ju[i]["time_local"]) + "|" + ToString(this.Ju[i]["spid"]) + "|" + ToString(this.Ju[i]["pid"]) + "|" + ToString(this.Ju[i]["dhbeat_hostname"])
-	//			if jkey == key {
-	//	//	if ToString(this.Ju[i]["time_local"]) == ToString(pl["time_local"]) && ToString(this.Ju[i]["spid"]) == ToString(pl["spid"]) && ToString(this.Ju[i]["pid"]) == ToString(pl["pid"]) {
-	//			t := this.Ju[i]["bw"].(float64) + pl["bw"].(float64)
-	//			this.Ju[i]["bw"] = t
-	//			break
-	//		} else if ToString(this.Ju[i]["time_local"]) != ToString(pl["time_local"]) || ToString(this.Ju[i]["spid"]) != ToString(pl["spid"]) || ToString(this.Ju[i]["pid"]) != ToString(pl["pid"]) {
-	//			this.Ju = append(this.Ju, pl)
-	//			break
-	//		}
-	//	}
-	//}
 }
 
-// 聚合器导出聚合后的数据，同时清空
+// 导出聚合后的数据，同时清空
 func (this *Aggregator) Dump() []P {
-	// todo
-
-	return this.Ju
+	this.Lock.Lock()
+	defer this.Lock.Unlock()
+	dump := []P{}
+	for _, tmp := range this.Cache {
+		v := tmp.(P)
+		dump = append(dump, v.Copy())
+	}
+	this.Cache = P{}
+	return dump
 }
-
-//func (this *Aggregator) Dump()map[string]float64 {
-//		// todo
-//
-//		return this.Lm
-//	}
 
 // 聚合器容量
 func (this *Aggregator) Size() int {
-	// todo
-	return len(this.Ju)
+	return len(this.Cache)
 }
