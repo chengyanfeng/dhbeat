@@ -23,3 +23,13 @@ func BenchmarkLogParser_Parse(b *testing.B) {
 		parser.Parse(msg)
 	}
 }
+
+func TestLogParser_ProcFile_2(t *testing.T) {
+	offset := ProcFile("/data/soooner/soooner_cache.log")
+	Debug(offset)
+	Debug(Aggr.Count, Aggr.Size())
+	ps := Aggr.Dump()
+	for _, v := range ps {
+		Debug(JsonEncode(v))
+	}
+}

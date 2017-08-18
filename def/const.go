@@ -12,7 +12,6 @@ var Lock cmap.ConcurrentMap = cmap.New()
 var LocalDb *scribble.Driver
 var NATS_HOST string
 var Nc *nats.Conn
-var BLOCK_SIZE int64
 var DIR string
 var TYPE string
 var HOSTNAME, _ = os.Hostname()
@@ -20,4 +19,5 @@ var Q_NAME = "bw"
 
 const (
 	GENERAL_ERR int = 400
+	BLOCK_SIZE      = 1024 * 1024
 )

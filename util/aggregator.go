@@ -7,6 +7,7 @@ import (
 type Aggregator struct {
 	Cache P
 	Lock  sync.Mutex
+	Count int64
 }
 
 // 往聚合器里面增加数据
@@ -28,6 +29,7 @@ func (this *Aggregator) Add(ps ...P) {
 			v["bytes_sent"] = ToInt(v["bytes_sent"]) + ToInt(p["bytes_sent"])
 			v["request_time"] = ToFloat(v["request_time"]) + ToFloat(p["request_time"])
 		}
+		this.Count++
 	}
 }
 
@@ -38,6 +40,7 @@ func (this *Aggregator) Dump() []P {
 	dump := []P{}
 	for _, tmp := range this.Cache {
 		v := tmp.(P)
+		Unset(v, "key")
 		dump = append(dump, v.Copy())
 	}
 	this.Cache = P{}

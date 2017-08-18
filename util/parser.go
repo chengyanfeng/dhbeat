@@ -16,12 +16,11 @@ type LogParser struct {
 func (this *LogParser) Parse(msg string) P {
 	segs := ToSegs(msg)
 	p := P{}
-	if len(segs) != 16 {
+	if len(segs) < 14 {
 		Error("Invalid msg", len(segs), msg)
 		return p
 	}
 	p["request_time"] = ToFloat(segs[1]) // 服务时间
-	//p["request_length"] = segs[5]                      // 请求长度
 	p["bytes_sent"] = ToInt(segs[6]) * 8 // 发送长度
 	p["url"] = segs[8]                   // 完整请求链接
 	this.ParseUrl(p)

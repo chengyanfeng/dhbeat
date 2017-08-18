@@ -6,7 +6,6 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/nanobox-io/golang-scribble"
 	"github.com/nats-io/go-nats"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -32,7 +31,6 @@ func initConf() {
 	myConfig := new(Config)
 	config := myConfig.InitConfig("./", "DhBeat.ini", "nats")
 	NATS_HOST = config["nats_host"]
-	BLOCK_SIZE, _ = strconv.ParseInt(config["block_size"], 10, 64)
 	Q_NAME = config["q_name"]
 	DIR = config["dir"]
 	TYPE = config["type"]
