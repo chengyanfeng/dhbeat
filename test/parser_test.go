@@ -30,6 +30,18 @@ func TestLogParser_ProcFile_2(t *testing.T) {
 	Debug(Aggr.Count, Aggr.Size())
 	ps := Aggr.Dump()
 	for _, v := range ps {
-		Debug(JsonEncode(v))
+		//Debug(JsonEncode(v))
+		log := JoinStr(v["time_local"],
+			",",
+			v["spid"],
+			",",
+			v["pid"],
+			",",
+			v["dhbeat_hostname"],
+			",",
+			v["request_time"],
+			",",
+			v["bytes_sent"])
+		Debug(log)
 	}
 }
