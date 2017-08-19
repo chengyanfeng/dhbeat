@@ -24,8 +24,6 @@ func main() {
 	StartWatcher()
 }
 
-var aggr = Aggregator{}
-
 //初始化配置文件
 func initConf() {
 	myConfig := new(Config)
@@ -115,8 +113,8 @@ func AutoSaveOffset() {
 // 自动定时dump aggr
 func AutoDump() {
 	for {
-		data := aggr.Dump()
-		count := 0
+		data := Aggr.Dump()
+		count := len(data)
 		for _, v := range data {
 			log := JoinStr(v["time_local"],
 				",",
@@ -133,7 +131,6 @@ func AutoDump() {
 			if err != nil {
 				Error(err)
 			}
-			count++
 		}
 		Debug("AutoDump", count)
 		time.Sleep(5 * time.Minute)
