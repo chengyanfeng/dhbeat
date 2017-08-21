@@ -27,7 +27,7 @@ func main() {
 //初始化配置文件
 func initConf() {
 	myConfig := new(Config)
-	config := myConfig.InitConfig("./", "DhBeat.ini", "nats")
+	config := myConfig.InitConfig("./", "dhbeat.ini", "nats")
 	NATS_HOST = config["nats_host"]
 	Q_NAME = config["q_name"]
 	DIR = config["dir"]
@@ -133,6 +133,6 @@ func AutoDump() {
 			}
 		}
 		Debug("AutoDump", count)
-		time.Sleep(5 * time.Minute)
+		time.Sleep(1 * time.Second)
 	}
 }
